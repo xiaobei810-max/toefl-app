@@ -680,10 +680,12 @@ function pickMCQ(el,chosenIdx,correctIdx){
     srsPass(w.en); awardKnown(wasReview);
     actionArea.innerHTML=`<button class="btn-flip" onclick="advance()">下一个</button>`;
   }else{
-    // 选错：不直接公布答案，直接进入第 2 页（语境段落）
+    // 选错：不直接公布答案。有语境段落或词根可以给提示的，进第 2 页再判断一次；
+    // 两者都没有的词，第 2 页也只是白问一遍，直接判错更诚实。
     el.classList.add('wrong');
     [...document.querySelectorAll('#mcqOpts .opt')].forEach(b=>b.style.pointerEvents='none');
-    setTimeout(()=>renderContext(w),350);
+    const hasHelp = !!PASSAGES[w.en] || !!w.root;
+    setTimeout(()=>{ hasHelp ? renderContext(w) : renderFail(w); },350);
   }
 }
 window.pickMCQ=pickMCQ;
@@ -710,15 +712,31 @@ function renderContext(w){
       <div class="ctx-explain" id="ctxExplain"></div>
     </div>`;
   }else{
-    // 没有语境段落的词：退化为「只显示词根 + 四选一」
+    // 没有语境段落、但有词根的词：退化为「词根提示 + 四选一」——
+    // 词根提前亮出来，是这次多给的新线索，不是白问一遍
     const {opts,correctIndex}=buildDefOptions(w);
     stage.innerHTML=`<div class="ctxcard">
       <div class="ctx-head">${spkBtn(w.en)}<div class="ctx-word">${w.en}</div></div>
-      <div class="opts wide" id="ctxOpts">${opts.map((o,i)=>`<button class="opt" onclick="pickContextDegraded(this,${i},${correctIndex})">${escHtml(o)}</button>`).join('')}</div>
+      <div class="ctx-root-line">词根提示：${escHtml(w.root)}</div>
+      <div class="opts wide" id="ctxOpts" style="margin-top:12px">${opts.map((o,i)=>`<button class="opt" onclick="pickContextDegraded(this,${i},${correctIndex})">${escHtml(o)}</button>`).join('')}</div>
       <div class="ctx-explain" id="ctxExplain"></div>
     </div>`;
   }
   actionArea.innerHTML='';
+  speak(w.en);
+}
+// 选错第 1 页、且既没有语境段落也没有词根可用作提示：直接判错并公布释义，不再多问一遍
+function renderFail(w){
+  srsFail(w.en); awardMiss();
+  stage.innerHTML=`<div class="mcqcard">
+    ${tierChip(w)}<span class="pos">${w.pos||''}</span>${spkBtn(w.en)}
+    <div class="word">${w.en}</div>
+    <div class="phon">${w.phon?'['+w.phon+']':''}</div>
+    <div class="ctx-explain show" style="margin-top:14px;text-align:left;width:100%;max-width:330px">
+      <span class="eh">解析</span>${escHtml(w.en)} = ${escHtml(w.zh)}
+    </div>
+  </div>`;
+  actionArea.innerHTML=`<button class="btn-flip" onclick="advance()">下一个</button>`;
   speak(w.en);
 }
 function resolveContext(el,chosenIdx,correctIdx,explainHtml){
@@ -745,8 +763,8 @@ window.pickContext=pickContext;
 function pickContextDegraded(el,chosenIdx,correctIdx){
   if(ctxDone) return; ctxDone=true;
   const w=curWord();
-  let html=`<span class="eh">解析</span>`;
-  html += w.root ? `词根：${escHtml(w.root)}` : `${escHtml(w.en)} = ${escHtml(w.zh)}`;
+  // 词根提示已经在选之前亮出来了，这里只需确认词义
+  const html=`<span class="eh">解析</span>${escHtml(w.en)} = ${escHtml(w.zh)}`;
   resolveContext(el,chosenIdx,correctIdx,html);
 }
 window.pickContextDegraded=pickContextDegraded;
