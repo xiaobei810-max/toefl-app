@@ -295,7 +295,6 @@
   <div class="modal" id="modalBox"></div>
 </div>
 
-<script src="passages.js"></script>
 <script>
 /* ====== 词库（v2: {w:[...], fam:{...}}）======
    w 项: [en, tier(0=toefl,1=ssat), pos, zh, phon, root, ex, def_en, syn, ant] */
@@ -305,8 +304,12 @@ const F={EN:0,TIER:1,POS:2,ZH:3,PHON:4,ROOT:5,EX:6,DEF:7,SYN:8,ANT:9};
 const WORDS = RAW.map(a=>({en:a[0],tier:a[1]===0?'toefl':'ssat',pos:a[2],zh:a[3],
   phon:a[4],root:a[5],ex:a[6],def:a[7],syn:a[8],ant:a[9]}));
 
-/* ====== Membean 化：托福复习第二页用的上下文段落题（仅覆盖部分托福词，缺失的词退化为词根+四选一）====== */
-
+/* ====== Membean 化：托福复习第二页用的上下文段落题（仅覆盖部分托福词，缺失的词退化为词根+四选一）======
+   数据量较大（几十万字符），不内联进主脚本，改成页面渲染完之后异步拉取，
+   避免和 DATA 词库一起解析导致某些手机浏览器解析/内存吃紧。拉取完成前或失败时，
+   PASSAGES 保持空对象——renderContext 本来就会把它当成"没有语境段落"处理，直接走退化方案。====== */
+let PASSAGES = {};
+fetch('passages.json').then(r=>r.json()).then(d=>{ PASSAGES=d; }).catch(()=>{});
 
 /* ====== SSAT 高频优先 + 近义分散（仅影响“学新词”的出现顺序）====== */
 // 排在前面的先学；不在表里的按词库原顺序排后面。可继续往里加词或调整顺序。
