@@ -9,6 +9,9 @@
 <meta name="apple-mobile-web-app-title" content="词卡">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="theme-color" content="#f5f1e8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
 <style>
   :root{
     --ink:#1c2a3a; --ink-soft:#42566b; --paper:#f5f1e8; --card:#fffdf8;
@@ -1108,6 +1111,11 @@ window.toggleStar=function(en,el){
 renderModeSeg(); buildQueue(); updHud(); buildVoiceMenu();
 // voices sometimes load async
 setTimeout(()=>{ if(window.speechSynthesis){ pickBestVoice(); buildVoiceMenu(); } },500);
+
+/* 离线缓存：开着 VPN 打开过一次后，整个 app 存本地，之后没网/不挂 VPN 也能用 */
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 </script>
 </body>
 </html>
